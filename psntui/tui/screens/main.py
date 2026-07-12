@@ -103,6 +103,7 @@ class MainScreen(Screen):
         text-style: dim;
     }
     #day-detail-scroll {
+        height: 6;
         max-height: 6;
         margin: 0 1;
         margin-bottom: 1;
@@ -121,6 +122,9 @@ class MainScreen(Screen):
     }
     .compare-card {
         padding: 0 1;
+        height: auto;
+    }
+    #rarity-dist {
         height: auto;
     }
     .rarity-row {
