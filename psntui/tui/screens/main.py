@@ -152,12 +152,20 @@ class MainScreen(Screen):
         border: solid $accent;
         background: $surface;
     }
+    #hotkey-hint {
+        text-align: center;
+        color: $text-muted;
+        margin-top: 1;
+        height: auto;
+    }
     """
 
     def __init__(self) -> None:
         super().__init__()
         self._games: list = []
         self._search_active = False
+        self._sort_column = -1
+        self._sort_reverse = False
 
     def on_mount(self) -> None:
         self.query_one("#games-card").border_title = "GAMES"
@@ -182,6 +190,11 @@ class MainScreen(Screen):
                     yield Container(id="month-compare", classes="compare-card")
                 with Container(id="rarity-card"):
                     yield Container(id="rarity-dist")
+                yield Label(
+                    "[$accent]r[/] sync   [$accent]a[/] auth   [$accent]f[/] search   "
+                    "[$accent]q[/] quit   [$accent]esc[/] back",
+                    id="hotkey-hint"
+                )
 
     def on_screen_resume(self) -> None:
         try:
@@ -261,6 +274,34 @@ class MainScreen(Screen):
                 self.app.notify(f"→ {g['title_name']}")
                 return
         self.app.notify(f"No game matches '{query}'", severity="warning")
+
+    def _sort_games(self, column: int) -> None:
+        keys = ["title_name", "platform", "progress", "earned_platinum",
+                "earned_gold", "earned_silver", "earned_bronze", "last_updated_datetime"]
+        if column < 0 or column >= len(keys):
+            return
+        if self._sort_column == column:
+            self._sort_reverse = not self._sort_reverse
+        else:
+            self._sort_column = column
+            self._sort_reverse = False
+        key = keys[column]
+
+        def sort_key(g):
+            try:
+                val = g[key]
+            except (KeyError, IndexError):
+                val = None
+            if val is None:
+                return -1 if key != "title_name" else ""
+            return val if isinstance(val, (int, float)) else str(val).lower()
+
+        self._games.sort(key=sort_key, reverse=self._sort_reverse)
+        self._render_games_table()
+
+    def on_data_table_header_selected(self, event: DataTable.HeaderSelected) -> None:
+        if event.data_table.id == "games-table":
+            self._sort_games(event.column_index)
 
     def on_input_submitted(self, event) -> None:
         if event.input.id == "game-search":

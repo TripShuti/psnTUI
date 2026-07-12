@@ -11,7 +11,7 @@ Terminal UI for browsing and syncing PlayStation trophies.
 - **Month comparison** — current vs previous month
 - **Rarity distribution** — ultra rare / very rare / rare / common breakdown
 - **Play time tracking** — total, today, week, month per game (PS4/PS5 only)
-- **Headless sync** — optional systemd timer for automatic background sync
+- **Headless sync** — optional scheduled sync via systemd or Windows Task Scheduler
 
 ## Installation
 
@@ -50,12 +50,12 @@ PlayStation), then press `s` to validate and save.
 |-----|--------|
 | `r` | Sync trophies from PSN |
 | `a` | Auth screen |
-| `m` | Back to main screen |
+| `f` | Search game |
 | `q` | Quit |
 | `Esc` | Back (from game detail) |
 | Click | Select game / trophies / heatmap day |
 
-### Headless sync (systemd)
+### Headless sync (Linux — systemd)
 
 ```bash
 bash systemd/install.sh
@@ -63,20 +63,37 @@ bash systemd/install.sh
 
 Installs a timer that syncs every 4 hours (15 min after boot).
 
-Manual trigger:
+Manual trigger on any platform:
 
 ```bash
 psntui --sync
 ```
 
+### Headless sync (Windows — Task Scheduler)
+
+Run `psntui --sync` manually or create a scheduled task:
+
+```powershell
+# Run once
+psntui --sync
+
+# Create a task that runs every 4 hours
+$action = New-ScheduledTaskAction -Execute "psntui" -Argument "--sync"
+$trigger = New-ScheduledTaskTrigger -RepetitionInterval (New-TimeSpan -Hours 4) -AtStartup
+Register-ScheduledTask -TaskName "psnTUI Sync" -Action $action -Trigger $trigger -RunLevel Highest
+```
+
 ## Data
 
-- Config + DB: `~/.config/psntui/` (Linux) / equivalent on macOS/Windows
+- **Linux:** `~/.config/psntui/`
+- **Windows:** `%APPDATA%\psntui\`
+- **macOS:** `~/Library/Application Support/psntui/`
 - SQLite database with WAL mode
 
 ## Requirements
 
 - Python ≥ 3.11
+- A terminal with Unicode and TrueColour support (Windows Terminal, Windows Console Host with Virtual Terminal enabled, or any modern terminal on Linux/macOS)
 - PlayStation Network account with games on PS4/PS5
 - NPSSO token from PSN
 
