@@ -1,6 +1,6 @@
 from textual.app import ComposeResult
 from textual.screen import Screen
-from textual.widgets import Header, Footer, DataTable, Label
+from textual.widgets import DataTable, Label
 from textual.containers import Container
 
 from datetime import date, timedelta
@@ -17,15 +17,15 @@ class GameDetailScreen(Screen):
         self.app.switch_mode("main")
 
     CSS = """
-    .detail-header-text {
-        text-style: bold;
-        padding: 0 1;
+    #game-detail-card {
+        border: solid $primary;
+        margin: 0 1;
         margin-bottom: 1;
+        height: auto;
     }
 
     .detail-stats {
         padding: 0 1;
-        margin-bottom: 1;
     }
     .trophy-card {
         border: solid $primary;
@@ -43,13 +43,11 @@ class GameDetailScreen(Screen):
         self._current_game: str | None = None
 
     def compose(self) -> ComposeResult:
-        yield Header(show_clock=True)
-        yield Label("", id="game-title", classes="detail-header-text")
-        yield Label("", id="game-stats", classes="detail-stats")
-        yield Label("", id="game-playtime", classes="detail-stats")
+        with Container(id="game-detail-card"):
+            yield Label("", id="game-stats", classes="detail-stats")
+            yield Label("", id="game-playtime", classes="detail-stats")
         with Container(classes="trophy-card"):
             yield DataTable(id="trophy-table")
-        yield Footer()
 
     def on_screen_resume(self) -> None:
         game_id = getattr(self.app, "current_game_id", None)
@@ -73,8 +71,9 @@ class GameDetailScreen(Screen):
         trophies = database.get_trophies(conn, self._current_game)
 
         if game:
-            title = f"  {game['title_name']}  ({game['platform'] or '–'})"
-            self.query_one("#game-title", Label).update(title)
+            self.query_one("#game-detail-card").border_title = (
+                f"  {game['title_name']}  ({game['platform'] or '–'})"
+            )
 
             total = (game["defined_platinum"] + game["defined_gold"]
                      + game["defined_silver"] + game["defined_bronze"])
@@ -124,6 +123,8 @@ class GameDetailScreen(Screen):
         table = self.query_one("#trophy-table", DataTable)
         table.clear(columns=True)
         table.add_columns("Name", "Type", "Rarity", "Rate", "Earned", "Date")
+
+        self.query_one(".trophy-card").border_title = f"TROPHIES ({len(trophies)})"
 
         for t in trophies:
             earned_str = "✓" if t["earned"] else " "

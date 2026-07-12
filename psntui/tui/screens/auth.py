@@ -1,6 +1,6 @@
 from textual.app import ComposeResult
 from textual.screen import Screen
-from textual.widgets import Header, Footer, Label, Button, Input, Static
+from textual.widgets import Header, Label, Button, Input, Static
 from textual.containers import Container, Vertical
 
 
@@ -15,12 +15,6 @@ class AuthScreen(Screen):
         height: auto;
         padding: 2;
         border: solid $primary;
-    }
-
-    .auth-title {
-        text-style: bold;
-        text-align: center;
-        margin-bottom: 1;
     }
 
     .auth-step {
@@ -48,11 +42,12 @@ class AuthScreen(Screen):
     }
     """
 
+    def on_mount(self) -> None:
+        self.query_one(".auth-box").border_title = "AUTHENTICATION"
+
     def compose(self) -> ComposeResult:
-        yield Header(show_clock=True)
-        yield Container(
-            Vertical(
-                Label("psnTUI — Authentication", classes="auth-title"),
+        with Container(classes="auth-box"):
+            yield Vertical(
                 Label("1. Log into my.playstation.com in your browser", classes="auth-step"),
                 Label("2. Visit ca.account.sony.com/api/v1/ssocookie", classes="auth-step"),
                 Label('3. Copy the 64-character NPSSO code from the JSON', classes="auth-step"),
@@ -63,10 +58,7 @@ class AuthScreen(Screen):
                     classes="auth-buttons",
                 ),
                 Label("", id="auth-status"),
-            ),
-            classes="auth-box",
-        )
-        yield Footer()
+            )
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "auth-save":

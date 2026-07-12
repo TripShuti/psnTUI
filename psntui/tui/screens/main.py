@@ -3,7 +3,7 @@ from calendar import monthrange
 
 from textual.app import ComposeResult
 from textual.screen import Screen
-from textual.widgets import Header, Footer, DataTable, Label, Static
+from textual.widgets import DataTable, Label, Static
 from textual.containers import Container, Horizontal, Vertical, VerticalScroll
 from textual.coordinate import Coordinate
 from textual import events
@@ -71,28 +71,27 @@ class MainScreen(Screen):
         layout: horizontal;
         height: 1fr;
     }
-    .left-panel {
+    #games-card {
         width: 1fr;
         height: 1fr;
-        border-right: solid $primary;
-        padding-top: 1;
+        border: solid $primary;
     }
     #games-table {
         height: 1fr;
     }
-    .section-title {
-        text-style: bold;
-        padding: 0 1;
-    }
     .right-panel {
         width: 1fr;
-        padding-top: 1;
+        height: 1fr;
     }
-    #recent-table {
-        margin: 0 0 1 0;
-    }
-    #heatmap {
+    #recent-card, #heatmap-card, #month-card, #rarity-card {
+        border: solid $primary;
         margin-bottom: 1;
+    }
+    #recent-card {
+        height: 1fr;
+    }
+    #heatmap-card, #month-card, #rarity-card {
+        height: auto;
     }
     #heatmap-legend {
         margin: 0 1;
@@ -117,14 +116,8 @@ class MainScreen(Screen):
         scrollbar-size: 0 0;
     }
     .compare-card {
-        border: solid $primary;
-        margin: 0 1;
-        margin-bottom: 1;
-        padding: 1;
+        padding: 0 1;
         height: auto;
-    }
-    .compare-card Label {
-        text-style: bold;
     }
     .rarity-row {
         layout: horizontal;
@@ -148,25 +141,29 @@ class MainScreen(Screen):
         super().__init__()
         self._games: list = []
 
+    def on_mount(self) -> None:
+        self.query_one("#games-card").border_title = "GAMES"
+        self.query_one("#recent-card").border_title = "RECENT"
+        self.query_one("#heatmap-card").border_title = "WEEKLY ACTIVITY"
+        self.query_one("#month-card").border_title = "MONTH"
+        self.query_one("#rarity-card").border_title = "RARITY"
+
     def compose(self) -> ComposeResult:
-        yield Header(show_clock=True)
         with Horizontal(classes="main-horizontal"):
-            with Vertical(classes="left-panel"):
-                yield Label("Games", classes="section-title")
+            with Container(id="games-card"):
                 yield DataTable(id="games-table")
             with Vertical(classes="right-panel"):
-                yield Label("Recent Trophies", classes="section-title")
-                yield DataTable(id="recent-table")
-                yield Label("Weekly Activity Heatmap", classes="section-title")
-                yield HeatmapTable(id="heatmap")
-                yield Label(id="heatmap-legend")
-                with VerticalScroll(id="day-detail-scroll"):
-                    yield Static(id="day-detail")
-                yield Label("Month Comparison", classes="section-title")
-                yield Container(id="month-compare", classes="compare-card")
-                yield Label("Rarity Distribution", classes="section-title")
-                yield Container(id="rarity-dist")
-        yield Footer()
+                with Container(id="recent-card"):
+                    yield DataTable(id="recent-table")
+                with Container(id="heatmap-card"):
+                    yield HeatmapTable(id="heatmap")
+                    yield Label(id="heatmap-legend")
+                    with VerticalScroll(id="day-detail-scroll"):
+                        yield Static(id="day-detail")
+                with Container(id="month-card"):
+                    yield Container(id="month-compare", classes="compare-card")
+                with Container(id="rarity-card"):
+                    yield Container(id="rarity-dist")
 
     def on_screen_resume(self) -> None:
         try:
@@ -328,6 +325,8 @@ class MainScreen(Screen):
 
         this_name = today.strftime("%B %Y")
         last_name = date(last_year, last_month, 1).strftime("%B %Y")
+
+        self.query_one("#month-card").border_title = f"{this_name} vs {last_name}"
 
         container.mount(Label(f"  {this_name}: {this_count} trophies"))
         container.mount(Label(f"  {last_name}: {last_count} trophies"))

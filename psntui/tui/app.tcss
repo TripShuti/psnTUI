@@ -10,16 +10,12 @@ Screen > Header {
     height: 1;
 }
 
-Screen > Footer {
-    dock: bottom;
-    height: 1;
-}
-
 #sync-status {
     dock: bottom;
-    height: 1;
+    height: auto;
     background: $accent 10%;
     color: $text;
+    border: solid $primary;
     padding: 0 1;
 }
 

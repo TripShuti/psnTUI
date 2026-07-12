@@ -109,7 +109,8 @@ class psnTUI(App):
         if self._sync_bar is not None:
             bar = self._sync_bar
         else:
-            bar = Static(text, id="sync-status")
+            bar = Static(id="sync-status")
+            bar.border_title = "SYNC STATUS"
             self.mount(bar)
             self._sync_bar = bar
         bar.update(text)
