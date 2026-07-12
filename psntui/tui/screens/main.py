@@ -85,13 +85,17 @@ class MainScreen(Screen):
     }
     #recent-card, #heatmap-card, #month-card, #rarity-card {
         border: solid $primary;
-        margin-bottom: 1;
     }
     #recent-card {
-        height: 1fr;
+        height: 13;
+        margin-bottom: 1;
     }
     #heatmap-card, #month-card, #rarity-card {
         height: auto;
+        margin-bottom: 1;
+    }
+    #heatmap {
+        height: 9;
     }
     #heatmap-legend {
         margin: 0 1;
@@ -152,7 +156,7 @@ class MainScreen(Screen):
         with Horizontal(classes="main-horizontal"):
             with Container(id="games-card"):
                 yield DataTable(id="games-table")
-            with Vertical(classes="right-panel"):
+            with VerticalScroll(classes="right-panel"):
                 with Container(id="recent-card"):
                     yield DataTable(id="recent-table")
                 with Container(id="heatmap-card"):
