@@ -4,7 +4,7 @@ from calendar import monthrange
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.widgets import DataTable, Label, Static
-from textual.containers import Container, Horizontal, Vertical, VerticalScroll
+from textual.containers import Container, Horizontal, VerticalScroll
 from textual.coordinate import Coordinate
 from textual import events
 
@@ -138,6 +138,9 @@ class MainScreen(Screen):
     .rarity-bar-bg {
         width: 1fr;
         height: 1;
+    }
+    .rarity-bar-fg {
+        color: $accent;
     }
     .rarity-count {
         width: 8;
@@ -395,7 +398,7 @@ class MainScreen(Screen):
 
             row = Horizontal(
                 Label(f"  {rarity_names.get(rar, rar)}", classes="rarity-label"),
-                Label(bar, classes="rarity-bar-bg"),
+                Label(bar, classes="rarity-bar-bg rarity-bar-fg"),
                 Label(f"  {count} ({pct:.0f}%)", classes="rarity-count"),
                 classes="rarity-row",
             )
