@@ -2,13 +2,6 @@ Screen {
     layout: vertical;
 }
 
-Screen > Header {
-    dock: top;
-    background: $primary;
-    color: $text;
-    text-style: bold;
-    height: 1;
-}
 
 #sync-status {
     dock: bottom;

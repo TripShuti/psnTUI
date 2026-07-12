@@ -146,11 +146,18 @@ class MainScreen(Screen):
         width: 8;
         text-align: right;
     }
+    #search-overlay {
+        dock: top;
+        height: auto;
+        border: solid $accent;
+        background: $surface;
+    }
     """
 
     def __init__(self) -> None:
         super().__init__()
         self._games: list = []
+        self._search_active = False
 
     def on_mount(self) -> None:
         self.query_one("#games-card").border_title = "GAMES"
@@ -192,7 +199,9 @@ class MainScreen(Screen):
 
     def _load_games(self, conn) -> None:
         self._games = database.get_games(conn)
+        self._render_games_table()
 
+    def _render_games_table(self) -> None:
         table = self.query_one("#games-table", DataTable)
         table.clear(columns=True)
         table.add_columns("Name", "Platform", "Progress", "P", "G", "S", "B", "Last Trophy")
@@ -219,6 +228,51 @@ class MainScreen(Screen):
             table.add_rows([["No games synced yet", "", "", "", "", "", "", ""]])
 
         table.cursor_type = "row"
+        self._search_active = False
+
+    def _show_search(self) -> None:
+        if self._search_active:
+            return
+        self._search_active = True
+        from textual.widgets import Input
+        search = Container(
+            Input(placeholder="Filter games…", id="game-search"),
+            id="search-overlay",
+        )
+        self.mount(search, before=0)
+        self.query_one("#game-search", Input).focus()
+
+    def _dismiss_search(self) -> None:
+        self._search_active = False
+        try:
+            overlay = self.query_one("#search-overlay")
+            overlay.remove()
+        except Exception:
+            pass
+        self.query_one("#games-table", DataTable).focus()
+
+    def _filter_games(self, query: str) -> None:
+        if not query:
+            return
+        for i, g in enumerate(self._games):
+            if query.lower() in g["title_name"].lower():
+                table = self.query_one("#games-table", DataTable)
+                table.move_cursor(row=i, column=0)
+                self.app.notify(f"→ {g['title_name']}")
+                return
+        self.app.notify(f"No game matches '{query}'", severity="warning")
+
+    def on_input_submitted(self, event) -> None:
+        if event.input.id == "game-search":
+            event.stop()
+            query = event.value.strip()
+            self._filter_games(query)
+            self._dismiss_search()
+
+    def on_key(self, event) -> None:
+        if event.key == "escape" and self._search_active:
+            event.stop()
+            self._dismiss_search()
 
     def _load_recent(self, conn) -> None:
         recent = database.get_recent_earned(conn, limit=10)

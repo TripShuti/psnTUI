@@ -40,8 +40,8 @@ class psnTUI(App):
     }
 
     BINDINGS = [
-        Binding("m", "switch_mode('main')", "Main"),
         Binding("r", "sync", "Sync"),
+        Binding("f", "search", "Search"),
         Binding("a", "auth", "Auth"),
         Binding("q", "quit", "Quit"),
     ]
@@ -73,6 +73,10 @@ class psnTUI(App):
 
     def action_auth(self) -> None:
         self.switch_mode("auth")
+
+    def action_search(self) -> None:
+        if hasattr(self.screen, "_show_search"):
+            self.screen._show_search()
 
     @work(thread=True)
     def _run_sync(self, npsso: str) -> None:

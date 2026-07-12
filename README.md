@@ -41,7 +41,7 @@ PlayStation), then press `s` to validate and save.
 ### Getting your NPSSO token
 
 1. Log in to https://ca.account.sony.com
-2. Open DevTools → Application → Cookies
+2. Open DevTools → Application → Cookies or go to https://ca.account.sony.com/api/v1/ssocookie
 3. Copy the value of `npsso`
 
 ### Controls
