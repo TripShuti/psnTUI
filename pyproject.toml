@@ -1,6 +1,6 @@
 [project]
 name = "psntui"
-version = "0.1.0"
+version = "0.1.1"
 description = "PSN Trophy Tracker TUI — sync and browse your PlayStation trophies from the terminal"
 authors = [
     {name = "TripShuti"},
@@ -18,6 +18,9 @@ psntui = "psntui.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["psntui*"]
+
+[tool.setuptools.package-data]
+psntui = ["tui/*.tcss"]
 
 [project.urls]
 Homepage = "https://github.com/TripShuti/psnTUI"
