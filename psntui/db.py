@@ -287,6 +287,23 @@ def get_play_time(conn: sqlite3.Connection, np_comm_id: str,
     return row["total"] if row else 0
 
 
+def get_total_play_time(conn: sqlite3.Connection) -> int:
+    row = conn.execute(
+        "SELECT COALESCE(SUM(total_seconds), 0) as total FROM game_stats"
+    ).fetchone()
+    return row["total"] if row else 0
+
+
+def get_total_play_delta(conn: sqlite3.Connection,
+                         since: str, until: str) -> int:
+    row = conn.execute("""
+        SELECT COALESCE(SUM(delta_seconds), 0) as total
+        FROM play_delta_history
+        WHERE date >= ? AND date <= ?
+    """, (since, until)).fetchone()
+    return row["total"] if row else 0
+
+
 def get_game(conn: sqlite3.Connection, np_comm_id: str) -> sqlite3.Row | None:
     return conn.execute(
         "SELECT * FROM games WHERE np_communication_id = ?", (np_comm_id,)

@@ -58,6 +58,17 @@ class HeatmapTable(DataTable):
 
 WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
+def _fmt_playtime(s: int) -> str:
+    s = int(s)
+    h, m = divmod(s, 3600)
+    m //= 60
+    if h == 0:
+        return f"{m}m"
+    if m == 0:
+        return f"{h}h"
+    return f"{h}h {m}m"
+
+
 def _heat_color(ratio: float) -> str:
     """Teal intensity scale: lighter -> darker = more activity."""
     levels = ["#3abaa0", "#2a9a80", "#1a7a60", "#0d5a45"]
@@ -83,16 +94,16 @@ class MainScreen(Screen):
         width: 1fr;
         height: 1fr;
     }
-    #recent-card, #heatmap-card, #month-card, #rarity-card {
+    #recent-card, #heatmap-card, #month-card, #playtime-card, #rarity-card {
         border: solid $primary;
     }
     #recent-card {
         height: 13;
-        margin-bottom: 1;
+        margin-bottom: 0;
     }
-    #heatmap-card, #month-card, #rarity-card {
+    #heatmap-card,     #month-card, #playtime-card, #rarity-card {
         height: auto;
-        margin-bottom: 1;
+        margin-bottom: 0;
     }
     #heatmap {
         height: 9;
@@ -125,6 +136,10 @@ class MainScreen(Screen):
         height: auto;
     }
     #rarity-dist {
+        height: auto;
+    }
+    #playtime-content {
+        padding: 0 1;
         height: auto;
     }
     .rarity-row {
@@ -172,6 +187,7 @@ class MainScreen(Screen):
         self.query_one("#recent-card").border_title = "RECENT"
         self.query_one("#heatmap-card").border_title = "WEEKLY ACTIVITY"
         self.query_one("#month-card").border_title = "MONTH"
+        self.query_one("#playtime-card").border_title = "PLAY TIME"
         self.query_one("#rarity-card").border_title = "RARITY"
 
     def compose(self) -> ComposeResult:
@@ -188,6 +204,8 @@ class MainScreen(Screen):
                         yield Static(id="day-detail")
                 with Container(id="month-card"):
                     yield Container(id="month-compare", classes="compare-card")
+                with Container(id="playtime-card"):
+                    yield Static(id="playtime-content")
                 with Container(id="rarity-card"):
                     yield Container(id="rarity-dist")
                 yield Label(
@@ -208,16 +226,20 @@ class MainScreen(Screen):
         self._load_recent(conn)
         self._render_heatmap(conn)
         self._render_month_compare(conn)
+        self._render_playtime(conn)
         self._render_rarity(conn)
 
     def _load_games(self, conn) -> None:
         self._games = database.get_games(conn)
+        self._sort_column = 7
+        self._sort_reverse = True
+        self._games.sort(key=lambda g: str(g["last_updated_datetime"] or ""), reverse=True)
         self._render_games_table()
 
     def _render_games_table(self) -> None:
         table = self.query_one("#games-table", DataTable)
         table.clear(columns=True)
-        table.add_columns("Name", "Platform", "Progress", "P", "G", "S", "B", "Last Trophy")
+        table.add_columns("Name", "Platform", "Progress", "P", "G", "S", "B", "Last Played")
 
         for g in self._games:
             plat = g["platform"] or "–"
@@ -451,6 +473,27 @@ class MainScreen(Screen):
             change_str = "  No activity yet"
 
         container.mount(Label(change_str))
+
+    def _render_playtime(self, conn) -> None:
+        total_sec = database.get_total_play_time(conn)
+        today = date.today()
+        today_sec = database.get_total_play_delta(
+            conn, today.isoformat(), today.isoformat()
+        )
+        week_start = today - timedelta(days=today.weekday())
+        week_sec = database.get_total_play_delta(
+            conn, week_start.isoformat(), today.isoformat()
+        )
+        month_sec = database.get_total_play_delta(
+            conn, today.replace(day=1).isoformat(), today.isoformat()
+        )
+        label = (
+            f"  Total: [bold]{_fmt_playtime(total_sec)}[/]\n"
+            f"  [dim]Today:[/] {_fmt_playtime(today_sec)}  "
+            f"[dim]Week:[/] {_fmt_playtime(week_sec)}  "
+            f"[dim]Month:[/] {_fmt_playtime(month_sec)}"
+        )
+        self.query_one("#playtime-content", Static).update(label)
 
     def _render_rarity(self, conn) -> None:
         container = self.query_one("#rarity-dist")
