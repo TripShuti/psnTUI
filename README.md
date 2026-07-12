@@ -22,8 +22,8 @@ pip install psntui
 Or from source:
 
 ```bash
-git clone https://github.com/TripShuti/psntui
-cd psntui
+git clone https://github.com/TripShuti/psnTUI
+cd psnTUI
 pip install .
 ```
 

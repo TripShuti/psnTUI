@@ -1,6 +1,6 @@
 [Unit]
 Description=psnTUI - Periodic PSN trophy sync (every 4 hours)
-Documentation=https://github.com/yourusername/psntui
+Documentation=https://github.com/TripShuti/psntui
 
 [Timer]
 OnBootSec=15min

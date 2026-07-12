@@ -1,6 +1,6 @@
 [Unit]
 Description=psnTUI - Sync PSN trophies
-Documentation=https://github.com/yourusername/psntui
+Documentation=https://github.com/TripShuti/psntui
 
 [Service]
 Type=oneshot

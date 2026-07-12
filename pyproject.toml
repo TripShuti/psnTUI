@@ -20,5 +20,5 @@ psntui = "psntui.cli:main"
 include = ["psntui*"]
 
 [project.urls]
-Homepage = "https://github.com/YOUR_USERNAME/psntui"
-Repository = "https://github.com/YOUR_USERNAME/psntui"
+Homepage = "https://github.com/TripShuti/psnTUI"
+Repository = "https://github.com/TripShuti/psnTUI"

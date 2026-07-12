@@ -149,7 +149,7 @@ def _do_sync(npsso: str, progress_callback=None) -> dict:
 
     try:
         _ensure_request_timeout()
-        psnawp = PSNAWP(npsso_cookie=npsso, rate_limit=Rate(1, 1))
+        psnawp = PSNAWP(npsso_cookie=npsso, rate_limit=Rate(1, 3))
         client = psnawp.me()
     except Exception as e:
         result["status"] = "error"

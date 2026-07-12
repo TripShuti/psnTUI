@@ -56,7 +56,7 @@ class AuthScreen(Screen):
                 Label("1. Log into my.playstation.com in your browser", classes="auth-step"),
                 Label("2. Visit ca.account.sony.com/api/v1/ssocookie", classes="auth-step"),
                 Label('3. Copy the 64-character NPSSO code from the JSON', classes="auth-step"),
-                Input(placeholder="Paste NPSSO code here", id="npsso-input"),
+                Input(placeholder="Paste NPSSO code here", id="npsso-input", password=True),
                 Container(
                     Button("Validate & Save", id="auth-save", variant="primary"),
                     Button("Skip (start without auth)", id="auth-skip", variant="default"),

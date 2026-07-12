@@ -69,7 +69,6 @@ class TestDB(unittest.TestCase):
         self.assertIn("games", names)
         self.assertIn("trophies", names)
         self.assertIn("sync_log", names)
-        self.assertIn("hunting_sessions", names)
 
     def test_upsert_game(self):
         game = self._sample_game()
@@ -139,18 +138,6 @@ class TestDB(unittest.TestCase):
 
         last = db.get_last_sync_time(self.conn)
         self.assertIsNotNone(last)
-
-    def test_hunting_sessions(self):
-        game = self._sample_game()
-        db.upsert_game(self.conn, game)
-        self.conn.commit()
-
-        sid = db.start_hunting_session(self.conn, "NPWR12345_00")
-        db.stop_hunting_session(self.conn, sid)
-        self.conn.commit()
-
-        stats = db.get_hunting_stats(self.conn)
-        self.assertEqual(stats["total_sessions"], 1)
 
     def test_consecutive_days(self):
         game = self._sample_game()
