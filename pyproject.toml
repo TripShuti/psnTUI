@@ -1,6 +1,7 @@
 [project]
 name = "psntui"
-version = "0.1.4"
+version = "0.1.5"
+readme = "README.md"
 description = "PSN Trophy Tracker TUI — sync and browse your PlayStation trophies from the terminal"
 authors = [
     {name = "TripShuti"},

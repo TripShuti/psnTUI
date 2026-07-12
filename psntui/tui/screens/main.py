@@ -239,7 +239,7 @@ class MainScreen(Screen):
     def _render_games_table(self) -> None:
         table = self.query_one("#games-table", DataTable)
         table.clear(columns=True)
-        table.add_columns("Name", "Platform", "Progress", "P", "G", "S", "B", "Last Played")
+        table.add_columns("Name", "Platform", "Progress", "P", "G", "S", "B", "Last Trophy")
 
         for g in self._games:
             plat = g["platform"] or "–"
