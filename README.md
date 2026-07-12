@@ -83,21 +83,23 @@ anywhere except Sony's own API.
 
 ### Headless sync — Linux (systemd)
 
+> Requires cloning the repository — these files aren't bundled in the PyPI package.
+
 ```bash
+git clone https://github.com/TripShuti/psnTUI
+cd psnTUI
 bash systemd/install.sh
 ```
 
-Installs a user timer that syncs every 4 hours (15 minutes after boot).
+Installs a user timer that syncs every 4 hours on a fixed schedule
+(00:00, 04:00, 08:00, 12:00, 16:00, 20:00). Survives sleep/suspend — if a
+scheduled sync is missed while the system was asleep, it runs once
+immediately on wake, instead of skipping it entirely.
 
 Check it:
 ```bash
 systemctl --user status psntui-sync.timer
 journalctl --user -u psntui-sync.service -n 20
-```
-
-Manual trigger on any platform:
-```bash
-psntui --sync
 ```
 
 ### Headless sync — Windows (Task Scheduler)
@@ -110,6 +112,17 @@ psntui --sync
 $action = New-ScheduledTaskAction -Execute "psntui" -Argument "--sync"
 $trigger = New-ScheduledTaskTrigger -RepetitionInterval (New-TimeSpan -Hours 4) -AtStartup
 Register-ScheduledTask -TaskName "psnTUI Sync" -Action $action -Trigger $trigger -RunLevel Highest
+```
+
+> Note: by default this won't wake a sleeping laptop, so syncs are skipped
+> while it's asleep rather than caught up afterward. Add `-WakeToRun` to the
+> trigger settings if you want it to wake the machine for scheduled syncs,
+> or just run `psntui --sync` manually after waking.
+
+### Manual trigger (any platform)
+
+```bash
+psntui --sync
 ```
 
 ## Data storage
