@@ -3,10 +3,9 @@ Description=psnTUI - Periodic PSN trophy sync (every 4 hours)
 Documentation=https://github.com/TripShuti/psntui
 
 [Timer]
-OnBootSec=15min
-OnUnitActiveSec=4h
+OnCalendar=*-*-* 00/3:50:00
 Persistent=true
-RandomizedDelaySec=30min
+RandomizedDelaySec=5min
 
 [Install]
 WantedBy=timers.target
