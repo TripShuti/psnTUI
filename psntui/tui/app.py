@@ -8,6 +8,8 @@ from textual.worker import WorkerFailed
 from .. import auth, db
 from .. import sync as sync_module
 
+from .theme import PS1_THEME
+
 from .screens.auth import AuthScreen
 from .screens.main import MainScreen
 from .screens.game_detail import GameDetailScreen
@@ -50,6 +52,8 @@ class psnTUI(App):
         self._sync_bar = None
 
     def on_mount(self) -> None:
+        self.register_theme(PS1_THEME)
+        self.theme = "ps1"
         if auth.is_authenticated():
             self.switch_mode("main")
         else:

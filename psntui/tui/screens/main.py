@@ -59,18 +59,10 @@ class HeatmapTable(DataTable):
 WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 def _heat_color(ratio: float) -> str:
-    """Map 0..1 -> green -> yellow -> red (hex)."""
-    if ratio < 0.5:
-        t = ratio * 2
-        r = int(255 * t)
-        g = 170
-        b = 0
-    else:
-        t = (ratio - 0.5) * 2
-        r = 255
-        g = int(170 * (1 - t))
-        b = 0
-    return f"#{r:02x}{g:02x}{b:02x}"
+    """Teal intensity scale: lighter -> darker = more activity."""
+    levels = ["#3abaa0", "#2a9a80", "#1a7a60", "#0d5a45"]
+    idx = min(int(ratio * len(levels)), len(levels) - 1)
+    return levels[idx]
 
 
 class MainScreen(Screen):
@@ -83,6 +75,7 @@ class MainScreen(Screen):
         width: 1fr;
         height: 1fr;
         border-right: solid $primary;
+        padding-top: 1;
     }
     #games-table {
         height: 1fr;
@@ -90,18 +83,32 @@ class MainScreen(Screen):
     .section-title {
         text-style: bold;
         padding: 0 1;
-        margin-top: 1;
     }
     .right-panel {
         width: 1fr;
+        padding-top: 1;
     }
-    #day-detail-scroll {
-        max-height: 8;
+    #recent-table {
+        margin: 0 0 1 0;
+    }
+    #heatmap {
+        margin-bottom: 1;
+    }
+    #heatmap-legend {
         margin: 0 1;
         margin-bottom: 1;
-        border: solid $primary;
+        text-style: dim;
+    }
+    #day-detail-scroll {
+        max-height: 6;
+        margin: 0 1;
+        margin-bottom: 1;
+        border: none;
         overflow-y: auto;
         scrollbar-size: 0 0;
+    }
+    #day-detail-scroll.active {
+        border: solid $primary;
     }
     #day-detail {
         padding: 0 1;
@@ -112,6 +119,7 @@ class MainScreen(Screen):
     .compare-card {
         border: solid $primary;
         margin: 0 1;
+        margin-bottom: 1;
         padding: 1;
         height: auto;
     }
@@ -151,6 +159,7 @@ class MainScreen(Screen):
                 yield DataTable(id="recent-table")
                 yield Label("Weekly Activity Heatmap", classes="section-title")
                 yield HeatmapTable(id="heatmap")
+                yield Label(id="heatmap-legend")
                 with VerticalScroll(id="day-detail-scroll"):
                     yield Static(id="day-detail")
                 yield Label("Month Comparison", classes="section-title")
@@ -186,9 +195,14 @@ class MainScreen(Screen):
             last = "–"
             if g["last_updated_datetime"]:
                 last = g["last_updated_datetime"][:10]
+            plat_count = g["earned_platinum"]
+            if plat_count > 0:
+                plat_display = Text(str(plat_count), style="bold #b0b0e0")
+            else:
+                plat_display = str(plat_count)
             table.add_row(
                 g["title_name"], plat, progress,
-                str(g["earned_platinum"]), str(g["earned_gold"]),
+                plat_display, str(g["earned_gold"]),
                 str(g["earned_silver"]), str(g["earned_bronze"]),
                 last,
             )
@@ -267,7 +281,15 @@ class MainScreen(Screen):
             table.add_row(*cells)
 
         table.cursor_type = "cell"
-        self.query_one("#day-detail", Static).update("")
+        detail = self.query_one("#day-detail", Static)
+        detail.update("[dim]Click any day in the heatmap to see trophy details[/]")
+        self.query_one("#day-detail-scroll", VerticalScroll).remove_class("active")
+
+        legend_text = Text(" Less  ")
+        for c in ["#3abaa0", "#2a9a80", "#1a7a60", "#0d5a45"]:
+            legend_text.append("█", c)
+        legend_text.append("  More")
+        self.query_one("#heatmap-legend", Label).update(legend_text)
 
     def _show_day_detail(self, day_str: str) -> None:
         if not day_str:
@@ -284,6 +306,7 @@ class MainScreen(Screen):
             game = t["title_name"] or "?"
             lines.append(f"    {name}  [dim]({game})[/]")
         detail.update("\n".join(lines))
+        self.query_one("#day-detail-scroll", VerticalScroll).add_class("active")
         self.query_one("#day-detail-scroll", VerticalScroll).scroll_home(animate=False)
 
     def _render_month_compare(self, conn) -> None:
@@ -361,7 +384,7 @@ class MainScreen(Screen):
             count = r["count"]
             pct = (count / total) * 100 if total > 0 else 0
             bar_len = int((count / max_count) * bar_width) if max_count > 0 else 0
-            bar = "█" * bar_len if bar_len else ""
+            bar = "█" * max(bar_len, 1 if count > 0 else 0)
 
             row = Horizontal(
                 Label(f"  {rarity_names.get(rar, rar)}", classes="rarity-label"),
