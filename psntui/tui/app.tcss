@@ -1,0 +1,32 @@
+Screen {
+    layout: vertical;
+}
+
+Screen > Header {
+    dock: top;
+    background: $primary;
+    color: $text;
+    text-style: bold;
+    height: 1;
+}
+
+Screen > Footer {
+    dock: bottom;
+    height: 1;
+}
+
+#sync-status {
+    dock: bottom;
+    height: 1;
+    background: $accent 10%;
+    color: $text;
+    padding: 0 1;
+}
+
+#sync-status.success {
+    background: $success 20%;
+}
+
+#sync-status.error {
+    background: $error 20%;
+}

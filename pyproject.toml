@@ -1,0 +1,24 @@
+[project]
+name = "psntui"
+version = "0.1.0"
+description = "PSN Trophy Tracker TUI — sync and browse your PlayStation trophies from the terminal"
+authors = [
+    {name = "TripShuti"},
+]
+license = {text = "MIT"}
+requires-python = ">=3.11"
+dependencies = [
+    "psnawp>=3.0",
+    "textual>=2.0",
+    "platformdirs>=4.0",
+]
+
+[project.scripts]
+psntui = "psntui.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["psntui*"]
+
+[project.urls]
+Homepage = "https://github.com/YOUR_USERNAME/psntui"
+Repository = "https://github.com/YOUR_USERNAME/psntui"

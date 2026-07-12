@@ -1,0 +1,10 @@
+[Unit]
+Description=psnTUI - Sync PSN trophies
+Documentation=https://github.com/yourusername/psntui
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/psntui --sync
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin
+StandardOutput=journal
+StandardError=journal
