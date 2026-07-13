@@ -36,6 +36,46 @@ def headless_sync():
     db.close_conn()
 
 
+def _dump_stats():
+    from . import auth, sync as sync_module
+
+    config = auth.load_config()
+    if not config.get("npsso"):
+        print("Error: Not authenticated.")
+        sys.exit(1)
+
+    from pyrate_limiter import Rate
+    from psnawp_api import PSNAWP
+
+    psnawp = PSNAWP(npsso_cookie=config["npsso"], rate_limit=Rate(1, 3))
+    client = psnawp.me()
+
+    stats_names: set[str] = set()
+    for ts in client.title_stats(limit=None):
+        if ts.name:
+            stats_names.add(sync_module._normalize_name(ts.name))
+
+    trophy_names: set[str] = set()
+    for tt in client.trophy_titles(limit=None):
+        if tt.title_name:
+            trophy_names.add(sync_module._normalize_name(tt.title_name))
+
+    print(f"Stats API has {len(stats_names)} titles")
+    print(f"Trophy API has {len(trophy_names)} titles")
+    print()
+
+    missing = sorted(trophy_names - stats_names)
+    matched = sorted(trophy_names & stats_names)
+
+    print(f"Games WITH play time ({len(matched)}):")
+    for n in matched:
+        print(f"  ✓ {n}")
+    print()
+    print(f"Games WITHOUT play time ({len(missing)}):")
+    for n in missing:
+        print(f"  ✗ {n}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="psntui",
@@ -45,11 +85,19 @@ def main():
         "--sync", action="store_true",
         help="Run headless sync (for cron/systemd)",
     )
+    parser.add_argument(
+        "--stats-dump", action="store_true",
+        help="Dump all game names from title_stats API (debug)",
+    )
 
     args = parser.parse_args()
 
     if args.sync:
         headless_sync()
+        return
+
+    if args.stats_dump:
+        _dump_stats()
         return
 
     from . import auth, db

@@ -336,6 +336,16 @@ def get_daily_play_details(conn: sqlite3.Connection,
     """, (date_str,)).fetchall()
 
 
+def set_manual_play_time(conn: sqlite3.Connection,
+                         np_comm_id: str,
+                         total_seconds: int) -> None:
+    conn.execute("""
+        INSERT OR REPLACE INTO game_stats
+            (np_communication_id, title_id, total_seconds, play_count)
+        VALUES (?, NULL, ?, 0)
+    """, (np_comm_id, total_seconds))
+
+
 def get_game(conn: sqlite3.Connection, np_comm_id: str) -> sqlite3.Row | None:
     return conn.execute(
         "SELECT * FROM games WHERE np_communication_id = ?", (np_comm_id,)

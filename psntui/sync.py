@@ -1,3 +1,4 @@
+import re
 import time
 import sqlite3
 from datetime import datetime, timezone
@@ -106,6 +107,21 @@ def _get_platform(title: Any) -> PlatformType:
     return PlatformType.PS4
 
 
+_RE_TM = re.compile(r"[™®]")
+_RE_NEWLINE = re.compile(r"[\u000a\u000d]")
+_RE_SUFFIX = re.compile(r"\s+trophies$", re.IGNORECASE)
+_RE_WS = re.compile(r"\s+")
+
+
+def _normalize_name(name: str) -> str:
+    s = _RE_NEWLINE.sub("", name)
+    s = s.replace("\u2019", "'").replace("\u2018", "'")
+    s = _RE_TM.sub("", s)
+    s = _RE_SUFFIX.sub("", s)
+    s = _RE_WS.sub(" ", s)
+    return s.strip().lower()
+
+
 def sync_trophies(npsso: str, progress_callback=None) -> dict:
     with _sync_lock:
         return _do_sync(npsso, progress_callback)
@@ -160,11 +176,16 @@ def _do_sync(npsso: str, progress_callback=None) -> dict:
 
     all_titles = list(client.trophy_titles(limit=None))
 
-    title_stats_map: dict[str, Any] = {}
+    stats_by_id: dict[str, Any] = {}
+    stats_by_name: dict[str, Any] = {}
     try:
         for ts in client.title_stats(limit=None):
-            if ts.name and ts.name not in title_stats_map:
-                title_stats_map[ts.name] = ts
+            if ts.title_id and ts.title_id not in stats_by_id:
+                stats_by_id[ts.title_id] = ts
+            if ts.name:
+                key = _normalize_name(ts.name)
+                if key not in stats_by_name:
+                    stats_by_name[key] = ts
     except Exception as e:
         result["warnings"].append(f"Could not fetch play time stats: {e}")
 
@@ -229,18 +250,31 @@ def _do_sync(npsso: str, progress_callback=None) -> dict:
             else:
                 result["trophies_added"] += sum(1 for t in trophy_dicts if t["earned"])
 
-        ts_stats = title_stats_map.get(title.title_name)
-        if ts_stats and ts_stats.play_duration is not None:
-            db.update_game_stats(
-                conn, np_comm_id,
-                title_id=ts_stats.title_id,
-                total_seconds=int(ts_stats.play_duration.total_seconds()),
-                play_count=ts_stats.play_count,
-                first_played=ts_stats.first_played_date_time.isoformat()
-                if ts_stats.first_played_date_time else None,
-                last_played=ts_stats.last_played_date_time.isoformat()
-                if ts_stats.last_played_date_time else None,
-            )
+        ts_stats = stats_by_id.get(title.np_title_id)
+        if not ts_stats:
+            ts_stats = stats_by_name.get(_normalize_name(title.title_name))
+        if ts_stats:
+            if ts_stats.play_duration is not None:
+                db.update_game_stats(
+                    conn, np_comm_id,
+                    title_id=ts_stats.title_id,
+                    total_seconds=int(ts_stats.play_duration.total_seconds()),
+                    play_count=ts_stats.play_count,
+                    first_played=ts_stats.first_played_date_time.isoformat()
+                    if ts_stats.first_played_date_time else None,
+                    last_played=ts_stats.last_played_date_time.isoformat()
+                    if ts_stats.last_played_date_time else None,
+                )
+        else:
+            existing = db.get_game_stats(conn, np_comm_id)
+            if not existing or existing["total_seconds"] == 0:
+                title_id_hint = ""
+                if title.np_title_id:
+                    title_id_hint = f" (id={title.np_title_id})"
+                result["warnings"].append(
+                    f"No play time data for '{title.title_name}'{title_id_hint} "
+                    f"— not in PSN gamelist"
+                )
 
     try:
         db.finish_sync(
