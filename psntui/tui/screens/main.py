@@ -7,10 +7,21 @@ from textual.widgets import DataTable, Label, Static
 from textual.containers import Container, Horizontal, VerticalScroll
 from textual.coordinate import Coordinate
 from textual import events
+from textual.message import Message
 
 from rich.text import Text
 
 from ... import db as database
+from .calendar_screen import CalendarScreen
+
+
+class ClickableContainer(Container):
+    class Clicked(Message):
+        ...
+
+    def _on_click(self, event: events.Click) -> None:
+        self.post_message(self.Clicked())
+        event.stop()
 
 
 class HeatmapTable(DataTable):
@@ -138,6 +149,11 @@ class MainScreen(Screen):
     #rarity-dist {
         height: auto;
     }
+    #playtime-card {
+        &:hover {
+            tint: $accent 10%;
+        }
+    }
     #playtime-content {
         padding: 0 1;
         height: auto;
@@ -190,6 +206,9 @@ class MainScreen(Screen):
         self.query_one("#playtime-card").border_title = "PLAY TIME"
         self.query_one("#rarity-card").border_title = "RARITY"
 
+    def on_clickable_container_clicked(self) -> None:
+        self.app.push_screen(CalendarScreen())
+
     def compose(self) -> ComposeResult:
         with Horizontal(classes="main-horizontal"):
             with Container(id="games-card"):
@@ -204,7 +223,7 @@ class MainScreen(Screen):
                         yield Static(id="day-detail")
                 with Container(id="month-card"):
                     yield Container(id="month-compare", classes="compare-card")
-                with Container(id="playtime-card"):
+                with ClickableContainer(id="playtime-card"):
                     yield Static(id="playtime-content")
                 with Container(id="rarity-card"):
                     yield Container(id="rarity-dist")

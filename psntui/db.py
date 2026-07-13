@@ -304,6 +304,38 @@ def get_total_play_delta(conn: sqlite3.Connection,
     return row["total"] if row else 0
 
 
+def _month_bounds(year: int, month: int) -> tuple[str, str]:
+    start = date(year, month, 1)
+    if month == 12:
+        end = date(year + 1, 1, 1)
+    else:
+        end = date(year, month + 1, 1)
+    return start.isoformat(), end.isoformat()
+
+
+def get_daily_play_time(conn: sqlite3.Connection,
+                        year: int, month: int) -> dict[str, int]:
+    since, until = _month_bounds(year, month)
+    rows = conn.execute("""
+        SELECT date, COALESCE(SUM(delta_seconds), 0) as total
+        FROM play_delta_history
+        WHERE date >= ? AND date < ?
+        GROUP BY date
+    """, (since, until)).fetchall()
+    return {r["date"]: r["total"] for r in rows}
+
+
+def get_daily_play_details(conn: sqlite3.Connection,
+                           date_str: str) -> list[dict]:
+    return conn.execute("""
+        SELECT g.title_name, pdh.delta_seconds
+        FROM play_delta_history pdh
+        JOIN games g ON g.np_communication_id = pdh.np_communication_id
+        WHERE pdh.date = ? AND pdh.delta_seconds > 0
+        ORDER BY pdh.delta_seconds DESC
+    """, (date_str,)).fetchall()
+
+
 def get_game(conn: sqlite3.Connection, np_comm_id: str) -> sqlite3.Row | None:
     return conn.execute(
         "SELECT * FROM games WHERE np_communication_id = ?", (np_comm_id,)

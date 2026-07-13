@@ -171,5 +171,53 @@ class TestDB(unittest.TestCase):
         self.assertEqual(count2, 0)
 
 
+    def test_get_daily_play_time(self):
+        from datetime import date as dt_date
+        today = dt_date.today()
+        today_str = today.isoformat()
+        today_year, today_month = today.year, today.month
+
+        game1 = self._sample_game(np_communication_id="NPWR_A_00", title_name="Game A")
+        game2 = self._sample_game(np_communication_id="NPWR_B_00", title_name="Game B")
+        db.upsert_game(self.conn, game1)
+        db.upsert_game(self.conn, game2)
+
+        db.update_game_stats(self.conn, "NPWR_A_00", "CUSA_A", 0, 0, None, None)
+        db.update_game_stats(self.conn, "NPWR_A_00", "CUSA_A", 1800, 1,
+                             "2026-01-01T00:00:00", "2026-01-01T00:00:00")
+        db.update_game_stats(self.conn, "NPWR_B_00", "CUSA_B", 0, 0, None, None)
+        db.update_game_stats(self.conn, "NPWR_B_00", "CUSA_B", 7200, 2,
+                             "2026-07-01T00:00:00", "2026-07-15T00:00:00")
+        self.conn.commit()
+
+        daily = db.get_daily_play_time(self.conn, today_year, today_month)
+        self.assertIn(today_str, daily)
+        self.assertEqual(daily[today_str], 9000)
+
+        other_month = 6 if today_month != 6 else 5
+        empty = db.get_daily_play_time(self.conn, today_year, other_month)
+        self.assertEqual(empty, {})
+
+    def test_get_daily_play_details(self):
+        from datetime import date as dt_date
+        today = dt_date.today()
+        today_str = today.isoformat()
+
+        game1 = self._sample_game(np_communication_id="NPWR_A_00", title_name="Game A")
+        db.upsert_game(self.conn, game1)
+        db.update_game_stats(self.conn, "NPWR_A_00", "CUSA_A", 0, 0, None, None)
+        db.update_game_stats(self.conn, "NPWR_A_00", "CUSA_A", 1800, 1,
+                             "2026-07-01T00:00:00", "2026-07-15T00:00:00")
+        self.conn.commit()
+
+        details = db.get_daily_play_details(self.conn, today_str)
+        self.assertEqual(len(details), 1)
+        self.assertEqual(details[0]["title_name"], "Game A")
+        self.assertEqual(details[0]["delta_seconds"], 1800)
+
+        details_empty = db.get_daily_play_details(self.conn, "2026-07-14")
+        self.assertEqual(details_empty, [])
+
+
 if __name__ == "__main__":
     unittest.main()
