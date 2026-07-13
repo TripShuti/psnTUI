@@ -3,6 +3,8 @@ Description=psnTUI - Sync PSN trophies
 Documentation=https://github.com/TripShuti/psntui
 After=network-online.target
 Wants=network-online.target
+StartLimitIntervalSec=600
+StartLimitBurst=5
 
 [Service]
 Type=oneshot
@@ -10,3 +12,5 @@ ExecStart=%h/.local/bin/psntui --sync
 Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin
 StandardOutput=journal
 StandardError=journal
+Restart=on-failure
+RestartSec=60
