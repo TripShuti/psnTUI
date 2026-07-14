@@ -172,11 +172,6 @@ class TestDB(unittest.TestCase):
 
 
     def test_get_daily_play_time(self):
-        from datetime import date as dt_date
-        today = dt_date.today()
-        today_str = today.isoformat()
-        today_year, today_month = today.year, today.month
-
         game1 = self._sample_game(np_communication_id="NPWR_A_00", title_name="Game A")
         game2 = self._sample_game(np_communication_id="NPWR_B_00", title_name="Game B")
         db.upsert_game(self.conn, game1)
@@ -190,19 +185,16 @@ class TestDB(unittest.TestCase):
                              "2026-07-01T00:00:00", "2026-07-15T00:00:00")
         self.conn.commit()
 
-        daily = db.get_daily_play_time(self.conn, today_year, today_month)
-        self.assertIn(today_str, daily)
-        self.assertEqual(daily[today_str], 9000)
+        daily_jan = db.get_daily_play_time(self.conn, 2026, 1)
+        self.assertEqual(daily_jan, {"2026-01-01": 1800})
 
-        other_month = 6 if today_month != 6 else 5
-        empty = db.get_daily_play_time(self.conn, today_year, other_month)
+        daily_jul = db.get_daily_play_time(self.conn, 2026, 7)
+        self.assertEqual(daily_jul, {"2026-07-15": 7200})
+
+        empty = db.get_daily_play_time(self.conn, 2026, 6)
         self.assertEqual(empty, {})
 
     def test_get_daily_play_details(self):
-        from datetime import date as dt_date
-        today = dt_date.today()
-        today_str = today.isoformat()
-
         game1 = self._sample_game(np_communication_id="NPWR_A_00", title_name="Game A")
         db.upsert_game(self.conn, game1)
         db.update_game_stats(self.conn, "NPWR_A_00", "CUSA_A", 0, 0, None, None)
@@ -210,7 +202,7 @@ class TestDB(unittest.TestCase):
                              "2026-07-01T00:00:00", "2026-07-15T00:00:00")
         self.conn.commit()
 
-        details = db.get_daily_play_details(self.conn, today_str)
+        details = db.get_daily_play_details(self.conn, "2026-07-15")
         self.assertEqual(len(details), 1)
         self.assertEqual(details[0]["title_name"], "Game A")
         self.assertEqual(details[0]["delta_seconds"], 1800)

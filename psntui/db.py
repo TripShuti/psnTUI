@@ -268,13 +268,13 @@ def update_game_stats(conn: sqlite3.Connection, np_comm_id: str,
     if old is not None:
         delta = total_seconds - old["total_seconds"]
         if delta > 0:
-            today = date.today().isoformat()
+            play_date = last_played[:10] if last_played else date.today().isoformat()
             conn.execute("""
                 INSERT INTO play_delta_history (np_communication_id, date, delta_seconds)
                 VALUES (?, ?, ?)
                 ON CONFLICT(np_communication_id, date)
                 DO UPDATE SET delta_seconds = delta_seconds + excluded.delta_seconds
-            """, (np_comm_id, today, delta))
+            """, (np_comm_id, play_date, delta))
 
 
 def get_play_time(conn: sqlite3.Connection, np_comm_id: str,
