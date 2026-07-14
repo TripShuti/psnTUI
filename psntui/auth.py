@@ -42,3 +42,9 @@ def validate_npsso(npsso: str) -> str | None:
         return online_id
     except Exception:
         return None
+
+
+def save_theme_preference(name: str) -> None:
+    config = load_config()
+    config["theme"] = name
+    save_config(config)

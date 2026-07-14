@@ -90,7 +90,7 @@ class CalendarScreen(ModalScreen[None]):
         margin: 0 1;
         text-style: dim;
     }
-    #calendar-grid > DataTable {
+    #calendar-grid {
         scrollbar-size: 0 0;
         border: none;
     }
@@ -103,6 +103,8 @@ class CalendarScreen(ModalScreen[None]):
         self._month = today.month
         self._daily_data: dict[str, int] = {}
         self._cell_dates: dict[tuple[int, int], str] = {}
+        self._earliest: tuple[int, int] | None = None
+        self._update_bounds()
 
     def on_mount(self) -> None:
         self._load_month()
@@ -116,6 +118,15 @@ class CalendarScreen(ModalScreen[None]):
             yield _CalendarGrid(id="calendar-grid")
             yield Label(id="calendar-legend")
             yield Static(id="calendar-detail")
+
+    def _update_bounds(self) -> None:
+        conn = database.get_conn()
+        row = conn.execute(
+            "SELECT MIN(date) FROM play_delta_history"
+        ).fetchone()
+        if row and row[0]:
+            d = date.fromisoformat(row[0])
+            self._earliest = (d.year, d.month)
 
     def _load_month(self) -> None:
         conn = database.get_conn()
@@ -179,8 +190,19 @@ class CalendarScreen(ModalScreen[None]):
         legend.append(" More")
         self.query_one("#calendar-legend", Label).update(legend)
 
+    def _can_go_back(self) -> bool:
+        if not self._earliest:
+            return False
+        return (self._year, self._month) > self._earliest
+
+    def _can_go_forward(self) -> bool:
+        today = date.today()
+        return (self._year, self._month) < (today.year, today.month)
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "calendar-prev":
+            if not self._can_go_back():
+                return
             if self._month == 1:
                 self._month = 12
                 self._year -= 1
@@ -188,6 +210,8 @@ class CalendarScreen(ModalScreen[None]):
                 self._month -= 1
             self._load_month()
         elif event.button.id == "calendar-next":
+            if not self._can_go_forward():
+                return
             if self._month == 12:
                 self._month = 1
                 self._year += 1

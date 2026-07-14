@@ -80,6 +80,7 @@ anywhere except Sony's own API.
 | `q`     | Quit                                  |
 | `Esc`   | Back (from game detail / search)      |
 | Click   | Select game / trophy / heatmap day    |
+| Click   | Play time card → open monthly calendar|
 
 ### Headless sync — Linux (systemd)
 

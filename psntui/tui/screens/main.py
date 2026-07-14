@@ -110,9 +110,13 @@ class MainScreen(Screen):
     }
     #recent-card {
         height: 13;
-        margin-bottom: 0;
+        margin-bottom: 1;
     }
-    #heatmap-card,     #month-card, #playtime-card, #rarity-card {
+    #heatmap-card, #month-card, #playtime-card {
+        height: auto;
+        margin-bottom: 1;
+    }
+    #rarity-card {
         height: auto;
         margin-bottom: 0;
     }
@@ -125,8 +129,8 @@ class MainScreen(Screen):
         text-style: dim;
     }
     #day-detail-scroll {
-        height: 6;
-        max-height: 6;
+        height: 4;
+        max-height: 4;
         margin: 0 1;
         margin-bottom: 1;
         border: none;
@@ -228,8 +232,8 @@ class MainScreen(Screen):
                 with Container(id="rarity-card"):
                     yield Container(id="rarity-dist")
                 yield Label(
-                    "[$accent]r[/] sync   [$accent]a[/] auth   [$accent]f[/] search   "
-                    "[$accent]q[/] quit   [$accent]esc[/] back",
+                    "[$accent]r[/] sync   [$accent]a[/] auth   [$accent]t[/] theme   "
+                    "[$accent]f[/] search   [$accent]q[/] quit   [$accent]esc[/] back",
                     id="hotkey-hint"
                 )
 

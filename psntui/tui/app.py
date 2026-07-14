@@ -8,10 +8,11 @@ from textual.worker import WorkerFailed
 from .. import auth, db
 from .. import sync as sync_module
 
-from .theme import PS1_THEME
+from .theme import ALL_THEMES
 from .screens.auth import AuthScreen
 from .screens.main import MainScreen
 from .screens.game_detail import GameDetailScreen
+from .screens.theme_screen import ThemeScreen
 
 
 class SyncProgress(Message):
@@ -40,8 +41,9 @@ class psnTUI(App):
 
     BINDINGS = [
         Binding("r", "sync", "Sync"),
-        Binding("f", "search", "Search"),
         Binding("a", "auth", "Auth"),
+        Binding("t", "open_theme_picker", "Theme"),
+        Binding("f", "search", "Search"),
         Binding("q", "quit", "Quit"),
     ]
 
@@ -51,8 +53,10 @@ class psnTUI(App):
         self._sync_bar = None
 
     def on_mount(self) -> None:
-        self.register_theme(PS1_THEME)
-        self.theme = "ps1"
+        for t in ALL_THEMES.values():
+            self.register_theme(t)
+        config = auth.load_config()
+        self.theme = config.get("theme", "ps1")
         if auth.is_authenticated():
             self.switch_mode("main")
         else:
@@ -72,6 +76,9 @@ class psnTUI(App):
 
     def action_auth(self) -> None:
         self.switch_mode("auth")
+
+    def action_open_theme_picker(self) -> None:
+        self.push_screen(ThemeScreen())
 
     def action_search(self) -> None:
         if hasattr(self.screen, "_show_search"):
