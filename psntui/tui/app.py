@@ -1,7 +1,3 @@
-import hashlib
-from datetime import datetime
-from pathlib import Path
-
 from textual.app import App
 from textual.binding import Binding
 from textual.message import Message
@@ -16,16 +12,6 @@ from .theme import PS1_THEME
 from .screens.auth import AuthScreen
 from .screens.main import MainScreen
 from .screens.game_detail import GameDetailScreen
-
-
-_SYNC_LOG_PATH: Path | None = None
-
-
-def _get_sync_log_path() -> Path:
-    global _SYNC_LOG_PATH
-    if _SYNC_LOG_PATH is None:
-        _SYNC_LOG_PATH = db.DB_PATH.parent / "sync.log"
-    return _SYNC_LOG_PATH
 
 
 class SyncProgress(Message):
@@ -115,32 +101,11 @@ class psnTUI(App):
             )
             if r.get("warnings"):
                 msg += f"  ⚠ {len(r['warnings'])} warnings"
-                self._write_sync_log(r["warnings"])
-                log_path = _get_sync_log_path()
+                sync_module.write_sync_log(r["warnings"])
+                log_path = db.DB_PATH.parent / "sync.log"
                 msg += f"  ([dim]see {log_path}[/])"
             self._put_bar(msg, "success")
         self._refresh_current_screen()
-
-    def _write_sync_log(self, warnings: list[str]) -> None:
-        log_path = _get_sync_log_path()
-        hash_path = log_path.with_suffix(".log.hash")
-        new_hash = hashlib.sha256("".join(warnings).encode()).hexdigest()
-        try:
-            old_hash = hash_path.read_text().strip()
-            if old_hash == new_hash:
-                return
-        except (OSError, FileNotFoundError):
-            pass
-        now = datetime.now().isoformat(timespec="seconds")
-        lines = [f"[{now}] Sync warnings ({len(warnings)}):"]
-        for w in warnings:
-            lines.append(f"  ⚠ {w}")
-        try:
-            with open(log_path, "a", encoding="utf-8") as f:
-                f.write("\n".join(lines) + "\n\n")
-            hash_path.write_text(new_hash)
-        except OSError:
-            pass
 
     def on_worker_failed(self, event: WorkerFailed) -> None:
         self._syncing = False

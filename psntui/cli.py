@@ -33,6 +33,9 @@ def headless_sync():
     if result.get("warnings"):
         for w in result["warnings"]:
             print(f"  ⚠ {w}")
+        sync.write_sync_log(result["warnings"])
+        log_path = db.DB_PATH.parent / "sync.log"
+        print(f"  (see {log_path})")
     db.close_conn()
 
 
