@@ -3,7 +3,8 @@
 A terminal UI for browsing and syncing your PlayStation trophies — built for
 people who live in the terminal and want their trophy data without opening
 a browser or a bloated companion app.
-<img width="1920" height="1045" alt="image" src="https://github.com/user-attachments/assets/b678344a-b05f-457e-96ec-f3646980dd8b" />
+<img width="1920" height="1046" alt="image" src="https://github.com/user-attachments/assets/f866e805-5505-4f02-abd7-ec03bee14b51" />
+
 
 ## Features
 
