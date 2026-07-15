@@ -529,6 +529,27 @@ def get_friend_game_comparison(conn: sqlite3.Connection,
     """, (np_comm_id,)).fetchall()
 
 
+def get_friend_comparison_detail(conn: sqlite3.Connection,
+                                  friend_account_id: str) -> list[sqlite3.Row]:
+    return conn.execute("""
+        SELECT
+          g.title_name, g.platform,
+          g.progress AS my_progress,
+          g.earned_platinum AS my_plat, g.earned_gold AS my_gold,
+          g.earned_silver AS my_silver, g.earned_bronze AS my_bronze,
+          COALESCE(gs.total_seconds, 0) AS my_seconds,
+          fgc.progress AS friend_progress,
+          fgc.earned_platinum AS friend_plat, fgc.earned_gold AS friend_gold,
+          fgc.earned_silver AS friend_silver, fgc.earned_bronze AS friend_bronze
+        FROM friend_game_cache fgc
+        JOIN games g ON g.np_communication_id = fgc.np_communication_id
+        LEFT JOIN game_stats gs ON gs.np_communication_id = fgc.np_communication_id
+        WHERE fgc.account_id = ?
+          AND fgc.is_private = 0
+        ORDER BY g.title_name
+    """, (friend_account_id,)).fetchall()
+
+
 def get_friends_fetched_at(conn: sqlite3.Connection) -> str | None:
     row = conn.execute(
         "SELECT MAX(fetched_at) as fetched_at FROM friends_cache"

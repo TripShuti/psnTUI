@@ -325,5 +325,78 @@ class TestDB(unittest.TestCase):
         self.assertEqual(rows[1]["earned_total"], 0)
 
 
+    def test_get_friend_comparison_detail(self):
+        db.upsert_game(self.conn, {
+            "np_communication_id": "NPWR_GAME_00",
+            "np_title_id": "CUSA_GAME",
+            "title_name": "Shared Game",
+            "platform": "PS5",
+            "earned_platinum": 1, "earned_gold": 2,
+            "earned_silver": 5, "earned_bronze": 20,
+            "progress": 100,
+        })
+        db.upsert_game(self.conn, {
+            "np_communication_id": "NPWR_GAME_01",
+            "np_title_id": "CUSA_GAME2",
+            "title_name": "Mine Only",
+            "platform": "PS4",
+            "earned_platinum": 0, "earned_gold": 1,
+            "earned_silver": 3, "earned_bronze": 10,
+            "progress": 50,
+        })
+        db.upsert_friend(self.conn, {
+            "account_id": "acc1", "online_id": "FriendA",
+            "trophy_level": 10, "platinum": 5, "gold": 10,
+            "silver": 50, "bronze": 200, "is_private": 0,
+            "fetched_at": "2026-07-15T12:00:00",
+        })
+        db.upsert_friend_game(self.conn, {
+            "account_id": "acc1", "np_communication_id": "NPWR_GAME_00",
+            "progress": 100, "earned_platinum": 1, "earned_gold": 2,
+            "earned_silver": 5, "earned_bronze": 20, "is_private": 0,
+            "fetched_at": "2026-07-15T12:00:00",
+        })
+        db.upsert_friend_game(self.conn, {
+            "account_id": "acc1", "np_communication_id": "NPWR_GAME_02",
+            "progress": 30, "earned_platinum": 0, "earned_gold": 0,
+            "earned_silver": 1, "earned_bronze": 5, "is_private": 0,
+            "fetched_at": "2026-07-15T12:00:00",
+        })
+        self.conn.commit()
+
+        rows = db.get_friend_comparison_detail(self.conn, "acc1")
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["title_name"], "Shared Game")
+        self.assertEqual(rows[0]["my_plat"], 1)
+        self.assertEqual(rows[0]["friend_plat"], 1)
+        self.assertEqual(rows[0]["my_seconds"], 0)
+
+    def test_get_friend_comparison_detail_private(self):
+        db.upsert_game(self.conn, {
+            "np_communication_id": "NPWR_GAME_00",
+            "np_title_id": "CUSA_GAME",
+            "title_name": "Shared Game",
+            "platform": "PS5",
+            "earned_platinum": 1, "earned_gold": 2,
+            "earned_silver": 5, "earned_bronze": 20,
+            "progress": 100,
+        })
+        db.upsert_friend(self.conn, {
+            "account_id": "acc_priv", "online_id": "PrivateC",
+            "trophy_level": 0, "platinum": 0, "gold": 0,
+            "silver": 0, "bronze": 0, "is_private": 1,
+            "fetched_at": "2026-07-15T12:00:00",
+        })
+        db.upsert_friend_game(self.conn, {
+            "account_id": "acc_priv", "np_communication_id": "NPWR_GAME_00",
+            "progress": 0, "earned_platinum": 0, "earned_gold": 0,
+            "earned_silver": 0, "earned_bronze": 0, "is_private": 1,
+            "fetched_at": "2026-07-15T12:00:00",
+        })
+        self.conn.commit()
+        rows = db.get_friend_comparison_detail(self.conn, "acc_priv")
+        self.assertEqual(len(rows), 0, "private friends should be excluded")
+
+
 if __name__ == "__main__":
     unittest.main()

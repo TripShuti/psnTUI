@@ -49,7 +49,7 @@ class TestRightPanelLayout(unittest.TestCase):
             app = psnTUI()
 
             async def run():
-                async with app.run_test(size=(190, 55)) as pilot:
+                async with app.run_test(size=(190, 50)) as pilot:
                     await pilot.pause()
                     main = app.screen
 
@@ -74,7 +74,7 @@ class TestRightPanelLayout(unittest.TestCase):
 
                     hotkey = main.query_one("#hotkey-hint")
                     self.assertLessEqual(
-                        hotkey.region.y + hotkey.region.height, 55,
+                        hotkey.region.y + hotkey.region.height, 50,
                         "hotkey-hint extends beyond terminal bottom"
                     )
 

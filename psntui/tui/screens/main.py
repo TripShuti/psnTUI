@@ -14,14 +14,17 @@ from rich.text import Text
 from ... import db as database
 from ... import auth
 from .calendar_screen import CalendarScreen
+from .friends_screen import FriendsScreen
 
 
 class ClickableContainer(Container):
     class Clicked(Message):
-        ...
+        def __init__(self, container_id: str = "") -> None:
+            super().__init__()
+            self.container_id = container_id
 
     def _on_click(self, event: events.Click) -> None:
-        self.post_message(self.Clicked())
+        self.post_message(self.Clicked(container_id=self.id or ""))
         event.stop()
 
 
@@ -148,7 +151,7 @@ class MainScreen(Screen):
         margin-bottom: 0;
     }
     #heatmap {
-        height: 9;
+        height: 8;
     }
     #heatmap-legend {
         margin: 0 1;
@@ -156,8 +159,8 @@ class MainScreen(Screen):
         text-style: dim;
     }
     #day-detail-scroll {
-        height: 8;
-        max-height: 8;
+        height: 7;
+        max-height: 7;
         margin: 0 1;
         margin-bottom: 1;
         border: none;
@@ -238,8 +241,11 @@ class MainScreen(Screen):
         self.query_one("#rarity-card").border_title = "RARITY"
         self.query_one("#friend-card").border_title = "FRIENDS"
 
-    def on_clickable_container_clicked(self) -> None:
-        self.app.push_screen(CalendarScreen())
+    def on_clickable_container_clicked(self, event: ClickableContainer.Clicked) -> None:
+        if event.container_id == "friend-card":
+            self.app.push_screen(FriendsScreen())
+        else:
+            self.app.push_screen(CalendarScreen())
 
     def compose(self) -> ComposeResult:
         with Horizontal(classes="main-horizontal"):
@@ -259,7 +265,7 @@ class MainScreen(Screen):
                             yield Container(id="month-compare", classes="compare-card")
                         with ClickableContainer(id="playtime-card"):
                             yield Static(id="playtime-content")
-                    with Container(id="friend-card"):
+                    with ClickableContainer(id="friend-card"):
                         yield DataTable(id="friend-table")
                 with Container(id="rarity-card"):
                     yield Container(id="rarity-dist")
