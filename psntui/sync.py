@@ -9,6 +9,7 @@ from threading import Lock
 from pyrate_limiter import Rate
 from psnawp_api import PSNAWP
 from psnawp_api.core.request_builder import RequestBuilder
+from psnawp_api.core.psnawp_exceptions import PSNAWPForbiddenError
 from psnawp_api.models.trophies import PlatformType
 
 from . import db
@@ -255,6 +256,11 @@ def _do_sync(npsso: str, progress_callback=None) -> dict:
         if not ts_stats:
             ts_stats = stats_by_name.get(_normalize_name(title.title_name))
         if ts_stats:
+            if ts_stats.title_id and ts_stats.title_id != title.np_title_id:
+                conn.execute(
+                    "UPDATE games SET np_title_id = ? WHERE np_communication_id = ?",
+                    (ts_stats.title_id, np_comm_id)
+                )
             if ts_stats.play_duration is not None:
                 db.update_game_stats(
                     conn, np_comm_id,
@@ -313,3 +319,154 @@ def write_sync_log(warnings: list[str]) -> None:
         hash_path.write_text(new_hash)
     except OSError:
         pass
+
+
+def fetch_friends_leaderboard(npsso: str, progress_callback=None) -> dict:
+    conn = db.get_conn()
+    psnawp = PSNAWP(npsso_cookie=npsso)
+    client = psnawp.me()
+    friends = list(client.friends_list(limit=1000))
+    now = datetime.now(timezone.utc).isoformat()
+    processed = 0
+    private = 0
+    errors = 0
+    games_stored = 0
+
+    total = len(friends)
+    for i, friend in enumerate(friends):
+        try:
+            summary = friend.trophy_summary()
+            db.upsert_friend(conn, {
+                "account_id": friend.account_id,
+                "online_id": friend.online_id,
+                "trophy_level": summary.trophy_level,
+                "platinum": summary.earned_trophies.platinum,
+                "gold": summary.earned_trophies.gold,
+                "silver": summary.earned_trophies.silver,
+                "bronze": summary.earned_trophies.bronze,
+                "is_private": 0,
+                "fetched_at": now,
+            })
+
+            try:
+                for tt in friend.trophy_titles():
+                    npid = tt.np_communication_id
+                    if not npid or not npid.startswith("NPWR"):
+                        continue
+                    db.upsert_friend_game(conn, {
+                        "account_id": friend.account_id,
+                        "np_communication_id": npid,
+                        "progress": tt.progress or 0,
+                        "earned_platinum": tt.earned_trophies.platinum,
+                        "earned_gold": tt.earned_trophies.gold,
+                        "earned_silver": tt.earned_trophies.silver,
+                        "earned_bronze": tt.earned_trophies.bronze,
+                        "is_private": 0,
+                        "fetched_at": now,
+                    })
+                    games_stored += 1
+            except Exception:
+                pass
+
+            processed += 1
+        except PSNAWPForbiddenError:
+            db.upsert_friend(conn, {
+                "account_id": friend.account_id,
+                "online_id": friend.online_id,
+                "trophy_level": None,
+                "platinum": 0, "gold": 0, "silver": 0, "bronze": 0,
+                "is_private": 1,
+                "fetched_at": now,
+            })
+            private += 1
+        except Exception:
+            errors += 1
+        if progress_callback:
+            progress_callback(i + 1, total, friend.online_id)
+
+    conn.commit()
+    return {
+        "processed": processed,
+        "private": private,
+        "errors": errors,
+        "total": total,
+        "games_stored": games_stored,
+    }
+
+
+def fetch_friend_game_comparison(npsso: str, np_title_id: str,
+                                  np_comm_id: str, game_name: str,
+                                  progress_callback=None) -> dict:
+    conn = db.get_conn()
+    psnawp = PSNAWP(npsso_cookie=npsso)
+    client = psnawp.me()
+    friends = list(client.friends_list(limit=1000))
+    now = datetime.now(timezone.utc).isoformat()
+    processed = 0
+    private = 0
+    errors = 0
+
+    total = len(friends)
+
+    def store(friend, tt):
+        et = tt.earned_trophies
+        db.upsert_friend_game(conn, {
+            "account_id": friend.account_id,
+            "np_communication_id": tt.np_communication_id or "",
+            "progress": tt.progress or 0,
+            "earned_platinum": et.platinum,
+            "earned_gold": et.gold,
+            "earned_silver": et.silver,
+            "earned_bronze": et.bronze,
+            "is_private": 0,
+            "fetched_at": now,
+        })
+
+    def store_private(friend):
+        db.upsert_friend_game(conn, {
+            "account_id": friend.account_id,
+            "np_communication_id": "",
+            "progress": None,
+            "earned_platinum": 0, "earned_gold": 0,
+            "earned_silver": 0, "earned_bronze": 0,
+            "is_private": 1,
+            "fetched_at": now,
+        })
+
+    for i, friend in enumerate(friends):
+        try:
+            found = False
+            try:
+                for tt in friend.trophy_titles_for_title([np_title_id]):
+                    store(friend, tt)
+                    found = True
+                    break
+            except PSNAWPForbiddenError:
+                store_private(friend)
+                private += 1
+                found = True
+            except Exception:
+                pass
+
+            if not found:
+                for tt in friend.trophy_titles():
+                    if tt.np_communication_id == np_comm_id:
+                        store(friend, tt)
+                        found = True
+                        break
+            processed += 1
+        except PSNAWPForbiddenError:
+            store_private(friend)
+            private += 1
+        except Exception:
+            errors += 1
+        if progress_callback:
+            progress_callback(i + 1, total, friend.online_id)
+
+    conn.commit()
+    return {
+        "processed": processed,
+        "private": private,
+        "errors": errors,
+        "total": total,
+    }

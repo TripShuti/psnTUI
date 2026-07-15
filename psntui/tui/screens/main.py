@@ -4,7 +4,7 @@ from calendar import monthrange
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.widgets import DataTable, Label, Static
-from textual.containers import Container, Horizontal, VerticalScroll
+from textual.containers import Container, Horizontal, Vertical, VerticalScroll
 from textual.coordinate import Coordinate
 from textual import events
 from textual.message import Message
@@ -12,6 +12,7 @@ from textual.message import Message
 from rich.text import Text
 
 from ... import db as database
+from ... import auth
 from .calendar_screen import CalendarScreen
 
 
@@ -105,16 +106,42 @@ class MainScreen(Screen):
         width: 1fr;
         height: 1fr;
     }
-    #recent-card, #heatmap-card, #month-card, #playtime-card, #rarity-card {
+    #recent-card, #heatmap-card, #month-card, #playtime-card, #rarity-card, #friend-card {
         border: solid $primary;
     }
     #recent-card {
-        height: 13;
+        height: 12;
         margin-bottom: 1;
     }
-    #heatmap-card, #month-card, #playtime-card {
+    #heatmap-card {
         height: auto;
         margin-bottom: 1;
+    }
+    .month-friends-row {
+        height: 10;
+        margin-bottom: 1;
+    }
+    .month-playtime-column {
+        width: 45;
+    }
+    #month-card {
+        height: 5;
+        margin-bottom: 1;
+    }
+    #playtime-card {
+        height: 4;
+    }
+    #friend-card {
+        width: 1fr;
+        height: 100%;
+        background: transparent;
+    }
+    #friend-table {
+        height: 1fr;
+        background: transparent;
+    }
+    #friend-table > .datatable--header {
+        background: transparent;
     }
     #rarity-card {
         height: auto;
@@ -129,8 +156,8 @@ class MainScreen(Screen):
         text-style: dim;
     }
     #day-detail-scroll {
-        height: 4;
-        max-height: 4;
+        height: 8;
+        max-height: 8;
         margin: 0 1;
         margin-bottom: 1;
         border: none;
@@ -209,6 +236,7 @@ class MainScreen(Screen):
         self.query_one("#month-card").border_title = "MONTH"
         self.query_one("#playtime-card").border_title = "PLAY TIME"
         self.query_one("#rarity-card").border_title = "RARITY"
+        self.query_one("#friend-card").border_title = "FRIENDS"
 
     def on_clickable_container_clicked(self) -> None:
         self.app.push_screen(CalendarScreen())
@@ -225,15 +253,20 @@ class MainScreen(Screen):
                     yield Label(id="heatmap-legend")
                     with VerticalScroll(id="day-detail-scroll"):
                         yield Static(id="day-detail")
-                with Container(id="month-card"):
-                    yield Container(id="month-compare", classes="compare-card")
-                with ClickableContainer(id="playtime-card"):
-                    yield Static(id="playtime-content")
+                with Horizontal(classes="month-friends-row"):
+                    with Vertical(classes="month-playtime-column"):
+                        with Container(id="month-card"):
+                            yield Container(id="month-compare", classes="compare-card")
+                        with ClickableContainer(id="playtime-card"):
+                            yield Static(id="playtime-content")
+                    with Container(id="friend-card"):
+                        yield DataTable(id="friend-table")
                 with Container(id="rarity-card"):
                     yield Container(id="rarity-dist")
                 yield Label(
                     "[$accent]r[/] sync   [$accent]a[/] auth   [$accent]t[/] theme   "
-                    "[$accent]f[/] search   [$accent]q[/] quit   [$accent]esc[/] back",
+                    "[$accent]l[/] friends   [$accent]f[/] search   "
+                    "[$accent]q[/] quit   [$accent]esc[/] back",
                     id="hotkey-hint"
                 )
 
@@ -250,6 +283,7 @@ class MainScreen(Screen):
         self._render_heatmap(conn)
         self._render_month_compare(conn)
         self._render_playtime(conn)
+        self._render_friends(conn)
         self._render_rarity(conn)
 
     def _load_games(self, conn) -> None:
@@ -517,6 +551,34 @@ class MainScreen(Screen):
             f"[dim]Month:[/] {_fmt_playtime(month_sec)}"
         )
         self.query_one("#playtime-content", Static).update(label)
+
+    def _render_friends(self, conn) -> None:
+        rows = database.get_friends_leaderboard(conn)
+        table = self.query_one("#friend-table", DataTable)
+        table.show_cursor = False
+        table.clear(columns=True)
+        table.add_columns("ID", "Lv", "Platinum", "Gold", "Silver", "Bronze")
+
+        config = auth.load_config()
+        my_online_id = config.get("online_id")
+
+        for r in rows:
+            if r["is_private"]:
+                table.add_row(r["online_id"][:18], "🔒", "🔒", "🔒", "🔒", "🔒")
+            else:
+                highlight = my_online_id and r["online_id"] == my_online_id
+                oid = f"[bold]{r['online_id'][:18]}[/]" if highlight else r["online_id"][:18]
+                table.add_row(
+                    oid,
+                    str(r["trophy_level"] or 0),
+                    str(r["platinum"] or 0),
+                    str(r["gold"] or 0),
+                    str(r["silver"] or 0),
+                    str(r["bronze"] or 0),
+                )
+
+        if not rows:
+            table.add_row("[dim]—[/]", "", "", "", "", "")
 
     def _render_rarity(self, conn) -> None:
         container = self.query_one("#rarity-dist")

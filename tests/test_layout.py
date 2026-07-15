@@ -49,7 +49,7 @@ class TestRightPanelLayout(unittest.TestCase):
             app = psnTUI()
 
             async def run():
-                async with app.run_test(size=(190, 50)) as pilot:
+                async with app.run_test(size=(190, 55)) as pilot:
                     await pilot.pause()
                     main = app.screen
 
@@ -58,6 +58,7 @@ class TestRightPanelLayout(unittest.TestCase):
                         "heatmap-card",
                         "month-card",
                         "playtime-card",
+                        "friend-card",
                         "rarity-card",
                         "hotkey-hint",
                     ]
@@ -67,9 +68,13 @@ class TestRightPanelLayout(unittest.TestCase):
                         self.assertGreater(r.height, 0, f"{cid} has zero height")
                         self.assertGreater(r.width, 0, f"{cid} has zero width")
 
+                    fc = main.query_one("#friend-card")
+                    self.assertEqual(fc.region.height, 10,
+                                     "friend-card height should be exactly 10")
+
                     hotkey = main.query_one("#hotkey-hint")
                     self.assertLessEqual(
-                        hotkey.region.y + hotkey.region.height, 50,
+                        hotkey.region.y + hotkey.region.height, 55,
                         "hotkey-hint extends beyond terminal bottom"
                     )
 

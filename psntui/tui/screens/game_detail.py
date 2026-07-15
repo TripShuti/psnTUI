@@ -12,9 +12,38 @@ class GameDetailScreen(Screen):
     BINDINGS = [
         ("escape", "back_to_main", "Back"),
         ("t", "set_play_time", "Set Play Time"),
+        ("c", "compare_friends", "Compare"),
     ]
 
+    def action_compare_friends(self) -> None:
+        from .friends_screen import FriendCompareScreen
+        if self._current_game:
+            game_name = "?"
+            np_title_id = ""
+            conn = database.get_conn()
+            row = conn.execute(
+                "SELECT title_name, np_title_id FROM games WHERE np_communication_id = ?",
+                (self._current_game,)
+            ).fetchone()
+            if row:
+                game_name = row["title_name"]
+                np_title_id = row["np_title_id"] or ""
+            if not np_title_id:
+                gs = database.get_game_stats(conn, self._current_game)
+                if gs and gs["title_id"]:
+                    np_title_id = gs["title_id"]
+            self.app.push_screen(
+                FriendCompareScreen(self._current_game, np_title_id, game_name)
+            )
+
     def action_set_play_time(self) -> None:
+        if not self._current_game:
+            return
+        conn = database.get_conn()
+        gs = database.get_game_stats(conn, self._current_game)
+        if gs and gs["total_seconds"] > 0 and gs["title_id"] is not None:
+            self.app.notify("Play time already available from PSN", severity="warning")
+            return
         self._show_set_time_input()
 
     def _show_set_time_input(self) -> None:
@@ -75,6 +104,12 @@ class GameDetailScreen(Screen):
     DataTable {
         scrollbar-size: 0 0;
     }
+    #game-hint {
+        text-align: center;
+        color: $text-muted;
+        margin-top: 1;
+        height: auto;
+    }
     #time-overlay {
         dock: top;
         height: auto;
@@ -93,6 +128,11 @@ class GameDetailScreen(Screen):
             yield Label("", id="game-playtime", classes="detail-stats")
         with Container(classes="trophy-card"):
             yield DataTable(id="trophy-table")
+        yield Label(
+            "[dim][$accent]c[/] compare with friends  "
+            "[$accent]esc[/] back[/]",
+            id="game-hint"
+        )
 
     def on_key(self, event) -> None:
         if event.key == "escape":

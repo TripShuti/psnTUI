@@ -13,6 +13,7 @@ from .screens.auth import AuthScreen
 from .screens.main import MainScreen
 from .screens.game_detail import GameDetailScreen
 from .screens.theme_screen import ThemeScreen
+from .screens.friends_screen import FriendsScreen
 
 
 class SyncProgress(Message):
@@ -43,6 +44,7 @@ class psnTUI(App):
         Binding("r", "sync", "Sync"),
         Binding("a", "auth", "Auth"),
         Binding("t", "open_theme_picker", "Theme"),
+        Binding("l", "open_friends_leaderboard", "Friends"),
         Binding("f", "search", "Search"),
         Binding("q", "quit", "Quit"),
     ]
@@ -79,6 +81,9 @@ class psnTUI(App):
 
     def action_open_theme_picker(self) -> None:
         self.push_screen(ThemeScreen())
+
+    def action_open_friends_leaderboard(self) -> None:
+        self.push_screen(FriendsScreen())
 
     def action_search(self) -> None:
         if hasattr(self.screen, "_show_search"):

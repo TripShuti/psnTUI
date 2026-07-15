@@ -121,6 +121,25 @@ CREATE TABLE IF NOT EXISTS sync_log (
     games_updated INTEGER DEFAULT 0
 );
 
+CREATE TABLE IF NOT EXISTS friends_cache (
+    account_id TEXT PRIMARY KEY,
+    online_id TEXT NOT NULL,
+    trophy_level INTEGER,
+    platinum INTEGER, gold INTEGER, silver INTEGER, bronze INTEGER,
+    is_private INTEGER DEFAULT 0,
+    fetched_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS friend_game_cache (
+    account_id TEXT NOT NULL,
+    np_communication_id TEXT NOT NULL,
+    progress INTEGER, earned_platinum INTEGER, earned_gold INTEGER,
+    earned_silver INTEGER, earned_bronze INTEGER,
+    is_private INTEGER DEFAULT 0,
+    fetched_at TEXT NOT NULL,
+    PRIMARY KEY (account_id, np_communication_id)
+);
+
 """
 
 
@@ -439,5 +458,81 @@ def get_earned_month(conn: sqlite3.Connection, year: int, month: int) -> int:
             AND strftime('%m', earned_date_time) = ?
     """, (str(year), f"{month:02d}")).fetchone()
     return row["count"] if row else 0
+
+
+def upsert_friend(conn: sqlite3.Connection, f: dict) -> None:
+    conn.execute("""
+        INSERT INTO friends_cache
+            (account_id, online_id, trophy_level, platinum, gold, silver, bronze,
+             is_private, fetched_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(account_id)
+        DO UPDATE SET
+            online_id = excluded.online_id,
+            trophy_level = excluded.trophy_level,
+            platinum = excluded.platinum,
+            gold = excluded.gold,
+            silver = excluded.silver,
+            bronze = excluded.bronze,
+            is_private = excluded.is_private,
+            fetched_at = excluded.fetched_at
+    """, (
+        f["account_id"], f["online_id"], f.get("trophy_level"),
+        f.get("platinum", 0), f.get("gold", 0), f.get("silver", 0),
+        f.get("bronze", 0), f.get("is_private", 0), f["fetched_at"],
+    ))
+
+
+def upsert_friend_game(conn: sqlite3.Connection, fg: dict) -> None:
+    conn.execute("""
+        INSERT INTO friend_game_cache
+            (account_id, np_communication_id, progress,
+             earned_platinum, earned_gold, earned_silver, earned_bronze,
+             is_private, fetched_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(account_id, np_communication_id)
+        DO UPDATE SET
+            progress = excluded.progress,
+            earned_platinum = excluded.earned_platinum,
+            earned_gold = excluded.earned_gold,
+            earned_silver = excluded.earned_silver,
+            earned_bronze = excluded.earned_bronze,
+            is_private = excluded.is_private,
+            fetched_at = excluded.fetched_at
+    """, (
+        fg["account_id"], fg["np_communication_id"], fg.get("progress"),
+        fg.get("earned_platinum", 0), fg.get("earned_gold", 0),
+        fg.get("earned_silver", 0), fg.get("earned_bronze", 0),
+        fg.get("is_private", 0), fg["fetched_at"],
+    ))
+
+
+def get_friends_leaderboard(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    return conn.execute("""
+        SELECT *, (COALESCE(platinum,0) + COALESCE(gold,0)
+                   + COALESCE(silver,0) + COALESCE(bronze,0)) as total
+        FROM friends_cache
+        ORDER BY trophy_level DESC
+    """).fetchall()
+
+
+def get_friend_game_comparison(conn: sqlite3.Connection,
+                                np_comm_id: str) -> list[sqlite3.Row]:
+    return conn.execute("""
+        SELECT fgc.*, fc.online_id,
+            (COALESCE(earned_platinum,0) + COALESCE(earned_gold,0)
+             + COALESCE(earned_silver,0) + COALESCE(earned_bronze,0)) as earned_total
+        FROM friend_game_cache fgc
+        JOIN friends_cache fc ON fc.account_id = fgc.account_id
+        WHERE fgc.np_communication_id = ?
+        ORDER BY earned_total DESC
+    """, (np_comm_id,)).fetchall()
+
+
+def get_friends_fetched_at(conn: sqlite3.Connection) -> str | None:
+    row = conn.execute(
+        "SELECT MAX(fetched_at) as fetched_at FROM friends_cache"
+    ).fetchone()
+    return row["fetched_at"] if row and row["fetched_at"] else None
 
 
