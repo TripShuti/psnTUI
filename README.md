@@ -15,6 +15,8 @@ a browser or a bloated companion app.
 - **Month comparison** — current month vs previous month
 - **Rarity distribution** — ultra rare / very rare / rare / common breakdown
 - **Play time tracking** — total, today, this week, this month, per game (PS4/PS5 only)
+- **Friend leaderboard** — trophy level, platinum/gold/silver/bronze counts for all friends
+- **Per-game comparison** — compare trophy progress with a specific friend across all shared games
 - **In-app search** — jump to any game in your library without scrolling
 - **Headless sync** — scheduled background sync via systemd (Linux) or Task Scheduler (Windows)
 - Keyboard-first, no mouse required
@@ -73,15 +75,35 @@ anywhere except Sony's own API.
 
 ### Controls
 
+#### Main screen
+
 | Key     | Action                                |
 |---------|----------------------------------------|
 | `r`     | Sync trophies from PSN                |
 | `a`     | Auth screen                           |
+| `l`     | Open friend leaderboard               |
+| `t`     | Theme picker                          |
 | `f`     | Search games                          |
 | `q`     | Quit                                  |
 | `Esc`   | Back (from game detail / search)      |
 | Click   | Select game / trophy / heatmap day    |
 | Click   | Play time card → open monthly calendar|
+
+#### Friends leaderboard (`l`)
+
+| Key     | Action                                |
+|---------|----------------------------------------|
+| `c`     | Compare with selected friend          |
+| `r`     | Reload friend data from PSN           |
+| `Esc`   | Close                                 |
+
+#### Game detail
+
+| Key     | Action                                |
+|---------|----------------------------------------|
+| `c`     | Compare friends on this game          |
+| `t`     | Set play time (if no PSN data)        |
+| `Esc`   | Back                                  |
 
 ### Headless sync — Linux (systemd)
 
